@@ -1,0 +1,92 @@
+version: '3'
+services: 
+    app: 
+        image: python-rest-api:compose
+        container_name: python_rest_api
+        build:
+            context: .
+            dockerfile: multistage.Dockerfile
+        restart: always
+        volumes: 
+            - python-rest-api_volume:/src
+        networks: 
+            - network_docker_compose
+
+    sonarqube:
+        image: "sonarqube:latest"
+        container_name: sonarqube
+        depends_on:
+            - database
+        ports:
+            - 9000:9000
+        restart: always
+        environment:
+            - SONAR_JDBC_URL=jdbc:postgresql://postgresql:5432/sonarqube-db
+            - SONAR_JDBC_USERNAME=admin
+            - SONAR_JDBC_PASSWORD=admin
+        volumes:
+            - sonarqube_data:/opt/sonarqube/data
+            - sonarqube_extensions:/opt/sonarqube/extensions
+            - sonarqube_logs:/opt/sonarqube/logs
+        networks:
+            - network_docker_compose
+
+    database:
+        image: "postgres:latest"
+        container_name: postgresql
+        restart: always
+        environment:
+            - POSTGRES_USER=admin
+            - POSTGRES_PASSWORD=admin
+            - POSTGRES_DB=sonarqube-db
+        volumes:
+            - postgresql_data:/var/lib/postgresql/data
+        networks:
+            - network_docker_compose
+
+    jenkins:
+        image: "jenkins/jenkins:lts-jdk11"
+        container_name: jenkins
+        ports:
+            - 8082:8082
+            - 50000:50000
+        volumes:
+            - jenkins_home:/var/jenkins_home
+        networks:
+            - network_docker_compose
+
+    nexus:
+        image: "sonatype/nexus3:latest"
+        container_name: nexus
+        ports:
+            - 8081:8081
+        restart: always
+        volumes:
+            - nexus-data:/nexus-data
+        networks:
+            - network_docker_compose
+
+    portainer:
+        image: "portainer/portainer"
+        container_name: portainer
+        ports:
+            - 8080:9000
+        restart: always
+        volumes:
+            - portainer_data:/data
+        networks:
+            - network_docker_compose
+
+volumes:
+    sonarqube_data:
+    sonarqube_logs:
+    sonarqube_extensions:
+    postgresql_data:
+    jenkins_home:
+    nexus-data:
+    portainer_data:
+    python-rest-api_volume:
+
+networks:
+    network_docker_compose:
+        driver: bridge
